@@ -201,7 +201,7 @@ public static class Xml
             return ParseCore(reader);
     }
 
-    public static XmppElement? Parse(Stream stream, Encoding? encoding, bool leaveOpen = true)
+    public static XmppElement? Parse(Stream stream, Encoding? encoding = default, bool leaveOpen = true)
     {
         using (var reader = new StreamReader(stream, encoding ?? Encoding.UTF8, true, XmppParser.DefaultBufferSize, leaveOpen))
             return ParseCore(reader);
