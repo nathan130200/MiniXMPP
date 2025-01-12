@@ -245,7 +245,7 @@ public static class Xml
                         else
                         {
                             current?.Add(newElement);
-                            newElement = current;
+                            current = newElement;
                         }
                     }
                     break;
