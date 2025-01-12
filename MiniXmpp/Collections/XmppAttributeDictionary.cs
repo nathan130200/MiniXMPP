@@ -100,6 +100,15 @@ public class XmppAttributeDictionary : IEnumerable<KeyValuePair<XmppName, string
                 _dictionary.Remove(key);
         }
     }
+
+    public void RemoveAll(params XmppName[] keys)
+    {
+        lock (_dictionary)
+        {
+            foreach (var key in keys)
+                _dictionary.Remove(key);
+        }
+    }
 #endif
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();

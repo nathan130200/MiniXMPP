@@ -25,8 +25,9 @@ public class XmppElement : XmppNode
 
     public void RemoveAttributes()
     {
-        var keys = Attributes
-            .MapWhen(x => !x.Key.IsNamespaceDeclaration, x => x.Key);
+        var keys = from attr in Attributes
+                   where !attr.Key.IsNamespaceDeclaration
+                   select attr.Key;
 
         Attributes.RemoveAll(keys);
     }
@@ -44,7 +45,11 @@ public class XmppElement : XmppNode
 
     public override string? Value
     {
-        get => string.Concat(Nodes().OfType<XmppText>().Map(x => x.Value));
+        get
+        {
+            return string.Concat(from n in Nodes().OfType<XmppText>()
+                                 select n.Value);
+        }
         set
         {
             RemoveNodes();

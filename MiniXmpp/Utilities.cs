@@ -40,21 +40,6 @@ public static class Utilities
         return enumerable;
     }
 
-    public static IEnumerable<U> Map<T, U>(this IEnumerable<T> enumerable, Func<T, U> mapping)
-    {
-        foreach (var item in enumerable)
-            yield return mapping(item);
-    }
-
-    public static IEnumerable<U> MapWhen<T, U>(this IEnumerable<T> source, Func<T, bool> condition, Func<T, U> mapping)
-    {
-        foreach (var item in source)
-        {
-            if (condition(item))
-                yield return mapping(item);
-        }
-    }
-
     public static byte[] GetBytes(this string s, Encoding? encoding = default)
         => (encoding ?? Encoding.UTF8).GetBytes(s);
 

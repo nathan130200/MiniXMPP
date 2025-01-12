@@ -93,16 +93,8 @@ public sealed class XmppName : IEquatable<XmppName>
     }
 
     public static implicit operator XmppName(string str) => new(str);
-    public static implicit operator string(XmppName name) => name.ToString();
 
-    public static XmppName operator +(XmppName left, string right)
-    {
-        return new XmppName
-        {
-            Prefix = left,
-            LocalName = right
-        };
-    }
+    public static implicit operator string(XmppName name) => name.ToString();
 
     public static bool operator !=(XmppName lhs, XmppName rhs) => !(lhs == rhs);
 
