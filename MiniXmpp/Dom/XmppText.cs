@@ -10,7 +10,8 @@ public class XmppText : XmppContentNode
 
     public XmppText(string value) : base(value)
     {
+
     }
 
-    public override XmppNode Clone() => new XmppText(Value);
+    public override XmppNode Clone() => new XmppText(Value!);
 }

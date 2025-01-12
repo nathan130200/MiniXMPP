@@ -1,16 +1,15 @@
-﻿using System.Collections;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Text;
 using MiniXmpp.Collections;
 using MiniXmpp.Dom.Abstractions;
 
 namespace MiniXmpp.Dom;
 
-public class XmppElement : XmppNode, IEnumerable<XmppNode>
+public class XmppElement : XmppNode
 {
-    internal readonly List<XmppNode> ChildNodes = new();
+    internal readonly List<XmppNode> _childNodes = new();
 
-    public XmppName TagName { get; set; }
+    public XmppName TagName { get; set; } = default!;
 
     public string LocalName
     {
@@ -18,10 +17,41 @@ public class XmppElement : XmppNode, IEnumerable<XmppNode>
         set => TagName.LocalName = value;
     }
 
-    public string Prefix
+    public string? Prefix
     {
         get => TagName.Prefix;
         set => TagName.Prefix = value;
+    }
+
+    public void RemoveAttributes()
+    {
+        var keys = Attributes
+            .MapWhen(x => !x.Key.IsNamespaceDeclaration, x => x.Key);
+
+        Attributes.RemoveAll(keys);
+    }
+
+    public void RemoveNodes()
+    {
+        lock (_childNodes)
+        {
+            foreach (var item in _childNodes)
+                item._parent = null;
+
+            _childNodes.Clear();
+        }
+    }
+
+    public override string? Value
+    {
+        get => string.Concat(Nodes().OfType<XmppText>().Map(x => x.Value));
+        set
+        {
+            RemoveNodes();
+
+            if (value != null)
+                Add(new XmppText(value));
+        }
     }
 
     public XmppAttributeDictionary Attributes { get; }
@@ -34,16 +64,22 @@ public class XmppElement : XmppNode, IEnumerable<XmppNode>
     public XmppElement(XmppElement other) : this()
     {
         TagName = other.TagName;
+
+        foreach (var (key, value) in other.Attributes)
+            Attributes[new(key)] = value;
+
+        foreach (var node in other.Nodes())
+            Add(node.Clone());
     }
 
-    public XmppElement(string tagName, string xmlns = default, string value = default) : this()
+    public XmppElement(string tagName, string? xmlns = default, string? value = default) : this()
     {
         TagName = tagName;
 
         if (xmlns != null)
         {
             if (TagName.HasPrefix)
-                SetNamespace(TagName.Prefix, xmlns);
+                SetNamespace(TagName.Prefix!, xmlns);
             else
                 SetNamespace(xmlns);
         }
@@ -54,7 +90,7 @@ public class XmppElement : XmppNode, IEnumerable<XmppNode>
     public override XmppNode Clone()
         => new XmppElement(this);
 
-    public string GetNamespace(string prefix = default)
+    public string? GetNamespace(string? prefix = default)
     {
         var key = prefix == null ? "xmlns" : $"xmlns:{prefix}";
 
@@ -72,8 +108,10 @@ public class XmppElement : XmppNode, IEnumerable<XmppNode>
     public void SetNamespace(string prefix, string value)
         => Attributes[$"xmlns:{prefix}"] = value;
 
-    public string GetAttribute(string key, string defaultValue = default)
+    public string? GetAttribute(string key, string? defaultValue = default)
         => Attributes[key] ?? defaultValue;
+
+#pragma warning disable
 
 #if NET8_0_OR_GREATER
 
@@ -90,6 +128,7 @@ public class XmppElement : XmppNode, IEnumerable<XmppNode>
         return defaultValue;
     }
 #else
+
     public T GetAttribute<T>(string key, T defaultValue = default)
     {
         var value = Attributes[key];
@@ -99,9 +138,12 @@ public class XmppElement : XmppNode, IEnumerable<XmppNode>
 
         return defaultValue;
     }
+
 #endif
 
-    public void SetAttribute(string key, object value, IFormatProvider formatProvidedr = default)
+#pragma warning restore
+
+    public void SetAttribute(string key, object value, IFormatProvider? formatProvidedr = default)
     {
         if (value == null)
             Attributes[key] = null;
@@ -125,66 +167,66 @@ public class XmppElement : XmppNode, IEnumerable<XmppNode>
 
     public string EndTag() => string.Concat("</", TagName, ">");
 
-    static void CollectElements(XmppElement container, List<XmppElement> result)
+    static void CollectElements(XmppElement self, List<XmppElement> result)
     {
-        foreach (var element in container.OfType<XmppElement>())
+        foreach (var element in self.Nodes().OfType<XmppElement>())
         {
             result.Add(element);
             CollectElements(element, result);
         }
     }
 
-    public XmppElement Element(XmppName name)
-        => Elements().FirstOrDefault(e => e.TagName == name);
-
-    public IEnumerable<XmppElement> Elements()
-        => this.OfType<XmppElement>();
-
-    public virtual void RemoveAll()
+    public IEnumerable<XmppNode> Nodes()
     {
-        var keys = Attributes.MapWhen(x => !x.Key.IsNamespaceDeclaration, x => x.Key);
-
-        Attributes.RemoveAll(keys);
-
-        lock (ChildNodes)
+        lock (_childNodes)
         {
-            foreach (var item in ChildNodes)
-                item._parent = null;
-
-            ChildNodes.Clear();
+            foreach (var node in _childNodes)
+                yield return node;
         }
     }
 
-    public virtual void AddChild(XmppNode node)
+    public XmppElement? Element(XmppName name) => Elements().FirstOrDefault(e => e.TagName == name);
+    public IEnumerable<XmppElement> Elements() => Nodes().OfType<XmppElement>();
+
+    public virtual void RemoveAll()
     {
-        if (node == null)
+        RemoveAttributes();
+        RemoveNodes();
+    }
+
+    public virtual void Add(XmppNode? node)
+    {
+        if (node is null)
             return;
 
         if (node._parent is not null)
             node = node.Clone();
 
-        lock (ChildNodes)
+        lock (_childNodes)
         {
-            ChildNodes.Add(node);
+            _childNodes.Add(node);
             node._parent = this;
         }
     }
 
-    public virtual void RemoveChild(XmppNode node)
+    public virtual void Remove(XmppNode? node)
     {
-        if (node?._parent != this)
+        if (node is null)
             return;
 
-        lock (ChildNodes)
+        if (node._parent != this)
+            return;
+
+        lock (_childNodes)
         {
-            ChildNodes.Remove(node);
+            _childNodes.Remove(node);
             node._parent = null;
         }
     }
 
-    static void CollectNodes(XmppElement element, List<XmppNode> result)
+    static void CollectNodes(XmppElement self, List<XmppNode> result)
     {
-        foreach (var node in element)
+        foreach (var node in self.Nodes())
         {
             result.Add(node);
 
@@ -206,15 +248,4 @@ public class XmppElement : XmppNode, IEnumerable<XmppNode>
         CollectNodes(this, result);
         return result;
     }
-
-    public IEnumerator<XmppNode> GetEnumerator()
-    {
-        lock (ChildNodes)
-        {
-            foreach (var node in ChildNodes)
-                yield return node;
-        }
-    }
-
-    IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 }

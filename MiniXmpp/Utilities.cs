@@ -13,20 +13,20 @@ public static class Utilities
         this object obj,
 
         [CallerArgumentExpression(nameof(obj))]
-        string expression = default
+        string? expression = default
     )
     {
         if (obj is null)
             throw new ArgumentNullException(expression);
     }
 
-    public static void ThrowIfNullOrEmpty(this string s, [CallerArgumentExpression(nameof(s))] string expression = default)
+    public static void ThrowIfNullOrEmpty(this string? s, [CallerArgumentExpression(nameof(s))] string? expression = default)
     {
         if (string.IsNullOrEmpty(s))
             throw new ArgumentException(default, expression);
     }
 
-    public static void ThrowIfNullOrWhiteSpace(this string s, [CallerArgumentExpression(nameof(s))] string expression = default)
+    public static void ThrowIfNullOrWhiteSpace(this string? s, [CallerArgumentExpression(nameof(s))] string? expression = default)
     {
         if (string.IsNullOrWhiteSpace(s))
             throw new ArgumentException(default, expression);
@@ -55,13 +55,10 @@ public static class Utilities
         }
     }
 
-    public static T Choose<T>(this T whenTrue, bool condition, T whenFalse)
-        => condition ? whenTrue : whenFalse;
-
-    public static byte[] GetBytes(this string s, Encoding encoding = default)
+    public static byte[] GetBytes(this string s, Encoding? encoding = default)
         => (encoding ?? Encoding.UTF8).GetBytes(s);
 
-    public static string GetString(this byte[] s, Encoding encoding = default)
+    public static string GetString(this byte[] s, Encoding? encoding = default)
         => (encoding ?? Encoding.UTF8).GetString(s);
 
     readonly struct HashAlgorithmEntry
@@ -95,6 +92,9 @@ public static class Utilities
 #if NET8_0_OR_GREATER
     public static void InstallHashAlgorithm(HashAlgorithmName name, HashDataFunction hashData, HashStreamFunction hashStream, bool replaceExisting = true)
     {
+        hashData.ThrowIfNull();
+        hashStream.ThrowIfNull();
+
         lock (s_HashAlgorithms)
         {
             if (s_HashAlgorithms.ContainsKey(name) && !replaceExisting)
@@ -110,6 +110,8 @@ public static class Utilities
 #else
     public static void InstallHashAlgorithm(HashAlgorithmName name, HashDataFunction hashData, bool replaceExisting = true)
     {
+        hashData.ThrowIfNull();
+
         lock (s_HashAlgorithms)
         {
             if (s_HashAlgorithms.ContainsKey(name) && !replaceExisting)

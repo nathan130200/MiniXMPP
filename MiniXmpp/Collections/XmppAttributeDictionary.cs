@@ -33,7 +33,7 @@ public class XmppAttributeDictionary : IEnumerable<KeyValuePair<XmppName, string
         }
     }
 
-    public string this[XmppName key]
+    public string? this[XmppName key]
     {
         get
         {
@@ -70,7 +70,7 @@ public class XmppAttributeDictionary : IEnumerable<KeyValuePair<XmppName, string
             return _dictionary.ContainsKey(key);
     }
 
-    public bool TryRemove(XmppName key, out string value)
+    public bool TryRemove(XmppName key, out string? value)
     {
         lock (_dictionary)
             return _dictionary.Remove(key, out value);

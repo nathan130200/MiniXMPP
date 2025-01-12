@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Xml;
+using System.Xml.Schema;
 using MiniXmpp.Dom;
 
 namespace MiniXmpp;
@@ -9,21 +10,21 @@ public delegate void XmppElementHandler(XmppElement e);
 public sealed class XmppParser : IDisposable
 {
     private volatile bool _disposed;
-    private XmlReader _reader;
+    private XmlReader? _reader;
 
-    public event XmppElementHandler OnStreamStart;
-    public event XmppElementHandler OnStreamElement;
-    public event Action OnStreamEnd;
+    public event XmppElementHandler? OnStreamStart;
+    public event XmppElementHandler? OnStreamElement;
+    public event Action? OnStreamEnd;
 
     static volatile int s_DefaultCharBufferSize = 4096;
 
-    public static int DefaultCharBufferSize
+    public static int DefaultBufferSize
     {
         get => s_DefaultCharBufferSize;
         set => s_DefaultCharBufferSize = Math.Clamp(value, 1024, 9216);
     }
 
-    public XmppParser(Stream stream, NameTable nameTable = default)
+    public XmppParser(Stream stream, NameTable? nameTable = default)
     {
         var settings = new XmlReaderSettings
         {
@@ -34,6 +35,8 @@ public sealed class XmppParser : IDisposable
             IgnoreProcessingInstructions = true,
             IgnoreWhitespace = true,
             NameTable = nameTable,
+            XmlResolver = XmlThrowingResolver.Shared,
+            ValidationFlags = XmlSchemaValidationFlags.AllowXmlAttributes
         };
 
         _reader = XmlReader.Create(new StreamReader(stream, Encoding.UTF8, true, s_DefaultCharBufferSize, true), settings);
@@ -41,47 +44,55 @@ public sealed class XmppParser : IDisposable
 
     public async Task StartAsync(CancellationToken token = default)
     {
-        XmppElement root = default;
+        XmppElement? current = default;
 
         try
         {
             while (!_disposed)
             {
-                await Task.Delay(1);
+                await Task.Delay(1, token);
 
-                var process = await Task.Run(() => _reader.ReadAsync(), token);
+                if (_reader == null)
+                    break;
 
-                if (!process)
+                var result = await _reader.ReadAsync();
+
+                if (!result)
                     continue;
 
                 switch (_reader.NodeType)
                 {
                     case XmlNodeType.Element:
                         {
-                            var current = new XmppElement(_reader.Name);
+                            XmppElement newElement;
+
+                            if (_reader.Name is "iq" or "message" or "presence")
+                                newElement = new XmppStanza(_reader.Name);
+                            else
+                                newElement = new XmppElement(_reader.Name);
 
                             while (_reader.MoveToNextAttribute())
-                                current.Attributes[_reader.Name] = _reader.Value;
+                                newElement.Attributes[_reader.Name] = _reader.Value;
 
                             _reader.MoveToElement();
 
-                            if (current.TagName == "stream:stream" && current.GetNamespace("stream") == Namespaces.Stream)
+                            if (newElement.TagName == "stream:stream" && newElement.GetNamespace("stream") == Namespaces.Stream)
                             {
-                                OnStreamStart?.Invoke(current);
+                                OnStreamStart?.Invoke(newElement);
                             }
                             else
                             {
                                 if (_reader.IsEmptyElement)
                                 {
-                                    if (root == null)
-                                        OnStreamElement?.Invoke(current);
+                                    if (current == null)
+                                        OnStreamElement?.Invoke(newElement);
                                     else
-                                        root.AddChild(current);
+                                        current.Add(newElement);
                                 }
                                 else
                                 {
-                                    root?.AddChild(current);
-                                    root = current;
+                                    current?.Add(newElement);
+                                    current = newElement;
                                 }
                             }
                         }
@@ -95,27 +106,27 @@ public sealed class XmppParser : IDisposable
                             }
                             else
                             {
-                                var parent = root?.Parent as XmppElement;
+                                var parent = current?.Parent;
 
                                 if (parent is null)
-                                    OnStreamElement?.Invoke(root);
+                                    OnStreamElement?.Invoke(current!);
 
-                                root = parent;
+                                current = parent;
                             }
                         }
                         break;
 
-                    case XmlNodeType.SignificantWhitespace:
                     case XmlNodeType.Text:
-                        root?.AddChild(new XmppText(_reader.Value));
+                    case XmlNodeType.SignificantWhitespace:
+                        current?.Add(new XmppText(_reader.Value));
                         break;
 
                     case XmlNodeType.CDATA:
-                        root?.AddChild(new XmppCdata(_reader.Value));
+                        current?.Add(new XmppCdata(_reader.Value));
                         break;
 
                     case XmlNodeType.Comment:
-                        root?.AddChild(new XmppComment(_reader.Value));
+                        current?.Add(new XmppComment(_reader.Value));
                         break;
                 }
             }

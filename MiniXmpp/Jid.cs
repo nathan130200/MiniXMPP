@@ -5,9 +5,9 @@ namespace MiniXmpp;
 
 public sealed record Jid
 {
-    public string Local { get; init; }
+    public string? Local { get; init; }
     public string Domain { get; init; }
-    public string Resource { get; init; }
+    public string? Resource { get; init; }
 
     public override string ToString()
     {
@@ -25,7 +25,7 @@ public sealed record Jid
         return sb.ToString();
     }
 
-    public Jid([NotNull] string jid)
+    public Jid(string jid)
     {
         jid.ThrowIfNull();
 
@@ -57,9 +57,11 @@ public sealed record Jid
     public bool IsServer => string.IsNullOrWhiteSpace(Local) && IsBare;
     public bool IsBare => string.IsNullOrWhiteSpace(Resource);
 
-    public static implicit operator Jid(string s)
+    [return: NotNullIfNotNull(nameof(s))]
+    public static implicit operator Jid?(string? s)
         => s == null ? null : new(s);
 
-    public static implicit operator string(Jid j)
+    [return: NotNullIfNotNull(nameof(j))]
+    public static implicit operator string?(Jid? j)
         => j?.ToString();
 }

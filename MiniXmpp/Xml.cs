@@ -1,6 +1,8 @@
 ﻿using System.Globalization;
+using System.Net;
 using System.Text;
 using System.Xml;
+using System.Xml.Schema;
 using MiniXmpp.Dom;
 using MiniXmpp.Dom.Abstractions;
 
@@ -45,6 +47,8 @@ public static class Xml
         }
     }
 
+#pragma warning disable
+
     public static T FromXmlString<T>(string value, T defaultValue = default, bool throwOnError = true)
     {
         var type = typeof(T);
@@ -85,19 +89,17 @@ public static class Xml
         return Convert.ToString(value, formatProvider ?? CultureInfo.InvariantCulture);
     }
 
-    public static XmlWriter CreateWriter(StringBuilder textWriter, XmlFormatting formatting, Encoding encoding = default)
-    {
-        var conformanceLevel = ConformanceLevel.Fragment
-            .Choose(
-                condition: formatting.HasFlag(XmlFormatting.OmitXmlDeclaration),
-                whenFalse: ConformanceLevel.Document
-            );
+#pragma warning restore
 
-        var namespaceHandling = NamespaceHandling.OmitDuplicates
-            .Choose(
-                condition: formatting.HasFlag(XmlFormatting.OmitDuplicatedNamespaces),
-                whenFalse: NamespaceHandling.Default
-            );
+    public static XmlWriter CreateWriter(StringBuilder textWriter, XmlFormatting formatting, Encoding? encoding = default)
+    {
+        var conformanceLevel = formatting.HasFlag(XmlFormatting.OmitXmlDeclaration)
+            ? ConformanceLevel.Fragment
+            : ConformanceLevel.Document;
+
+        var namespaceHandling = formatting.HasFlag(XmlFormatting.OmitDuplicatedNamespaces)
+            ? NamespaceHandling.OmitDuplicates
+            : NamespaceHandling.Default;
 
         return XmlWriter.Create(textWriter, new XmlWriterSettings()
         {
@@ -112,7 +114,7 @@ public static class Xml
             NewLineOnAttributes = formatting.HasFlag(XmlFormatting.NewLineOnAttributes),
             DoNotEscapeUriAttributes = formatting.HasFlag(XmlFormatting.DoNotEscapeUriAttributes),
             CheckCharacters = formatting.HasFlag(XmlFormatting.CheckCharacters),
-            WriteEndDocumentOnClose = formatting.HasFlag(XmlFormatting.WriteEndDocumentOnClose)
+            WriteEndDocumentOnClose = formatting.HasFlag(XmlFormatting.WriteEndDocumentOnClose),
         });
     }
 
@@ -145,24 +147,11 @@ public static class Xml
 
     internal static void WriteXmlTree(XmppNode node, XmlWriter writer)
     {
-        /*if (node is XmppDocument document)
-        {
-            if (document.Standalone == XmppDocumentStandalone.Unspecified)
-                writer.WriteStartDocument();
-            else
-                writer.WriteStartDocument(document.Standalone == XmppDocumentStandalone.Yes);
-
-            foreach (var n in document)
-                WriteXmlTree(n, writer);
-
-            writer.WriteEndDocument();
-        }*/
-
         if (node is XmppElement element)
         {
             WriteStartElement(element, writer);
 
-            foreach (var childNode in element)
+            foreach (var childNode in element.Nodes())
                 WriteXmlTree(childNode, writer);
 
             writer.WriteEndElement();
@@ -178,13 +167,167 @@ public static class Xml
             writer.WriteCData(cdata.Value);
     }
 
-    public static XmppElement C(this XmppElement parent, XmppName tagName, string xmlns = default, string value = default)
+    public static XmppElement C(this XmppElement parent, XmppName tagName, Action<XmppElement> callback)
     {
-        var child = new XmppElement(tagName, xmlns, value);
-        parent.AddChild(child);
+        parent.ThrowIfNull();
+        tagName.ThrowIfNull();
+        callback.ThrowIfNull();
+
+        var child = new XmppElement(tagName, parent.GetNamespace(tagName.Prefix));
+        callback(child);
+        parent.Add(child);
+        return parent;
+    }
+
+    public static XmppElement C(this XmppElement parent, XmppName tagName, string? xmlns = default, string? value = default)
+    {
+        parent.ThrowIfNull();
+        tagName.ThrowIfNull();
+
+        var child = new XmppElement(tagName, xmlns ?? parent.GetNamespace(tagName.Prefix), value);
+        parent.Add(child);
         return child;
     }
 
-    public static XmppElement Up(this XmppElement child)
-        => child.Parent as XmppElement;
+    public static XmppElement? Up(this XmppElement child)
+    {
+        child.ThrowIfNull();
+        return child.Parent;
+    }
+
+    public static XmppElement? Parse(string xml)
+    {
+        using (var reader = new StringReader(xml))
+            return ParseCore(reader);
+    }
+
+    public static XmppElement? Parse(Stream stream, Encoding? encoding, bool leaveOpen = true)
+    {
+        using (var reader = new StreamReader(stream, encoding ?? Encoding.UTF8, true, XmppParser.DefaultBufferSize, leaveOpen))
+            return ParseCore(reader);
+    }
+
+    internal static XmppElement? ParseCore(TextReader inputSource)
+    {
+        using var reader = XmlReader.Create(inputSource, new()
+        {
+            ConformanceLevel = ConformanceLevel.Fragment,
+            CheckCharacters = true,
+            DtdProcessing = DtdProcessing.Ignore,
+            XmlResolver = XmlThrowingResolver.Shared,
+            IgnoreWhitespace = true,
+            ValidationFlags = XmlSchemaValidationFlags.AllowXmlAttributes,
+            CloseInput = true
+        });
+
+        XmppElement? current = default;
+
+        while (reader.Read())
+        {
+            switch (reader.NodeType)
+            {
+                case XmlNodeType.Element:
+                    {
+                        var newElement = new XmppElement(reader.Name);
+
+                        while (reader.MoveToNextAttribute())
+                            newElement.Attributes[reader.Name] = reader.Value;
+
+                        reader.MoveToElement();
+
+                        if (reader.IsEmptyElement)
+                        {
+                            if (current != null)
+                                current.Add(newElement);
+                            else
+                                return newElement;
+                        }
+                        else
+                        {
+                            current?.Add(newElement);
+                            newElement = current;
+                        }
+                    }
+                    break;
+
+                case XmlNodeType.EndElement:
+                    {
+                        var parent = current?.Parent;
+
+                        if (parent is null) // root element closed
+                            return current;
+
+                        current = parent;
+                    }
+                    break;
+
+                case XmlNodeType.Text:
+                    current?.Add(new XmppText(reader.Value));
+                    break;
+
+                case XmlNodeType.Comment:
+                    current?.Add(new XmppComment(reader.Value));
+                    break;
+
+                case XmlNodeType.CDATA:
+                    current?.Add(new XmppCdata(reader.Value));
+                    break;
+
+
+            }
+        }
+
+        return current;
+    }
+
+    public static XmppElement StreamError(string? condition)
+    {
+        var el = new XmppElement("stream:error", Namespaces.Stream);
+
+        if (condition != null)
+            el.C(condition, Namespaces.Streams);
+
+        return el;
+    }
+
+    public static XmppElement Error(string? type, string? condition = default, string? text = default)
+    {
+        var el = new XmppElement("error")
+        {
+            Attributes =
+            {
+                ["type"] = type,
+            }
+        };
+
+        if (condition != null)
+            el.C(condition, Namespaces.Stanzas);
+
+        if (text != null)
+            el.C("text", Namespaces.Stanzas, text);
+
+        return el;
+    }
+}
+
+internal class XmlThrowingResolver : XmlResolver
+{
+    public static XmlThrowingResolver Shared { get; } = new();
+
+    public override object? GetEntity(Uri absoluteUri, string? role, Type? ofObjectToReturn)
+        => throw new InvalidOperationException();
+
+    public override Task<object> GetEntityAsync(Uri absoluteUri, string? role, Type? ofObjectToReturn)
+        => throw new InvalidOperationException();
+
+    public override bool SupportsType(Uri absoluteUri, Type? type)
+        => throw new InvalidOperationException();
+
+    public override Uri ResolveUri(Uri? baseUri, string? relativeUri)
+        => throw new InvalidOperationException();
+
+    public override ICredentials Credentials
+    {
+        set => throw new InvalidOperationException();
+    }
 }

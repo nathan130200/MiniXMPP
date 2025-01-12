@@ -9,6 +9,8 @@ public abstract class XmppContentNode : XmppNode
 
     public XmppContentNode(string value) : base()
     {
+        value.ThrowIfNull();
+
         Value = value;
     }
 }

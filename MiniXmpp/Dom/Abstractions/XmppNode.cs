@@ -5,28 +5,28 @@ namespace MiniXmpp.Dom.Abstractions;
 
 public abstract class XmppNode
 {
-    internal XmppElement _parent;
+    internal XmppElement? _parent;
 
-    public virtual string Value { get; set; }
+    public virtual string? Value { get; set; }
 
     internal XmppNode()
     {
 
     }
 
-    public XmppElement Parent
+    public XmppElement? Parent
     {
         get => _parent;
         set
         {
-            _parent?.RemoveChild(this);
-            value?.AddChild(this);
+            _parent?.Remove(this);
+            value?.Add(this);
         }
     }
 
     public virtual void Remove()
     {
-        _parent?.RemoveChild(this);
+        _parent?.Remove(this);
         _parent = null;
     }
 

@@ -12,5 +12,5 @@ public class XmppComment : XmppContentNode
     {
     }
 
-    public override XmppNode Clone() => new XmppComment(Value);
+    public override XmppNode Clone() => new XmppComment(Value!);
 }

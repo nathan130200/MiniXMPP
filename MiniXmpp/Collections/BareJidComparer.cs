@@ -1,6 +1,8 @@
-﻿namespace MiniXmpp.Collections;
+﻿using System.Collections;
 
-public class BareJidComparer : IComparer<Jid>
+namespace MiniXmpp.Collections;
+
+public sealed class BareJidComparer : IComparer, IComparer<Jid>
 {
     public static BareJidComparer Shared { get; } = new();
 
@@ -9,13 +11,18 @@ public class BareJidComparer : IComparer<Jid>
 
     }
 
-    public static bool AreEquals(Jid left, Jid right)
-        => Shared.Compare(left, right) == 0;
+    public static bool AreEquals(Jid? x, Jid? y)
+        => CompareCore(x, y) == 0;
 
-    public int Compare(Jid x, Jid y)
+    public int Compare(Jid? x, Jid? y)
+        => CompareCore(x, y);
+
+    int IComparer.Compare(object? x, object? y)
+        => CompareCore(x as Jid, y as Jid);
+
+    static int CompareCore(Jid? x, Jid? y)
     {
         if (ReferenceEquals(x, y)) return 0;
-
         if (x == null) return -1;
         if (y == null) return 1;
 

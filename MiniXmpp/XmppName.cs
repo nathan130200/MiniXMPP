@@ -4,9 +4,10 @@ namespace MiniXmpp;
 
 public sealed class XmppName : IEquatable<XmppName>
 {
-    private string _localName, _prefix;
+    private string _localName = default!;
+    private string? _prefix;
 
-    public XmppName()
+    internal XmppName()
     {
 
     }
@@ -50,7 +51,7 @@ public sealed class XmppName : IEquatable<XmppName>
         }
     }
 
-    public string Prefix
+    public string? Prefix
     {
         get => _prefix;
         internal set => _prefix = !string.IsNullOrWhiteSpace(value)
@@ -72,16 +73,16 @@ public sealed class XmppName : IEquatable<XmppName>
         Prefix?.GetHashCode() ?? 0
     );
 
-    public override bool Equals(object obj)
+    public override bool Equals(object? obj)
         => Equals(obj as XmppName);
 
-    public bool Equals(XmppName other)
+    public bool Equals(XmppName? other)
     {
-        if (other is null)
-            return false;
-
         if (ReferenceEquals(this, other))
             return true;
+
+        if (other is null)
+            return false;
 
         var result = string.Compare(_localName, other._localName, StringComparison.Ordinal);
 

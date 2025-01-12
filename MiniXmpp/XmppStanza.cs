@@ -8,7 +8,7 @@ public class XmppStanza : XmppElement
     {
     }
 
-    public XmppStanza(string tagName, string xmlns = null, string value = null) : base(tagName, xmlns, value)
+    public XmppStanza(string tagName, string? xmlns = null, string? value = null) : base(tagName, xmlns, value)
     {
     }
 
@@ -16,25 +16,25 @@ public class XmppStanza : XmppElement
     {
     }
 
-    public string Id
+    public string? Id
     {
         get => Attributes["id"];
         set => Attributes["id"] = value;
     }
 
-    public string Language
+    public string? Language
     {
         get => Attributes["xml:lang"];
         set => Attributes["xml:lang"] = value;
     }
 
-    public Jid From
+    public Jid? From
     {
         get => Attributes["from"];
         set => Attributes["from"] = value;
     }
 
-    public Jid To
+    public Jid? To
     {
         get => Attributes["to"];
         set => Attributes["to"] = value;
@@ -48,10 +48,20 @@ public class XmppStanza : XmppElement
         From = to;
     }
 
-    public string Type
+    public string? Type
     {
         get => Attributes["type"];
         set => Attributes["type"] = value;
+    }
+
+    public XmppElement? Error
+    {
+        get => Element("error");
+        set
+        {
+            Element("error")?.Remove();
+            Add(value);
+        }
     }
 
     public void GenerateId()

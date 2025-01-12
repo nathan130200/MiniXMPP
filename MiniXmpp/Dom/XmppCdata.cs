@@ -12,5 +12,5 @@ public class XmppCdata : XmppContentNode
     {
     }
 
-    public override XmppNode Clone() => new XmppCdata(Value);
+    public override XmppNode Clone() => new XmppCdata(Value!);
 }
