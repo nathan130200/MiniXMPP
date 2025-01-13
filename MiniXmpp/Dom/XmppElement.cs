@@ -23,6 +23,24 @@ public class XmppElement : XmppNode
         set => TagName.Prefix = value;
     }
 
+    public string? DefaultNamespace
+    {
+        get => GetNamespace();
+        set => SetNamespace(value);
+    }
+
+    public string? Namespace
+    {
+        get => GetNamespace(Prefix);
+        set
+        {
+            if (TagName.HasPrefix)
+                SetNamespace(Prefix!, value);
+            else
+                SetNamespace(value);
+        }
+    }
+
     public void RemoveAttributes()
     {
         var keys = from attr in Attributes
@@ -107,13 +125,16 @@ public class XmppElement : XmppNode
         return _parent?.GetNamespace(prefix);
     }
 
-    public void SetNamespace(string value)
+    public void SetNamespace(string? value)
         => Attributes["xmlns"] = value;
 
-    public void SetNamespace(string prefix, string value)
-        => Attributes[$"xmlns:{prefix}"] = value;
+    public void SetNamespace(string prefix, string? value)
+    {
+        prefix.ThrowIfNullOrWhiteSpace();
+        Attributes[$"xmlns:{prefix}"] = value;
+    }
 
-    public string? GetAttribute(string key, string? defaultValue = default)
+    public string? GetAttribute(XmppName key, string? defaultValue = default)
         => Attributes[key] ?? defaultValue;
 
 #pragma warning disable

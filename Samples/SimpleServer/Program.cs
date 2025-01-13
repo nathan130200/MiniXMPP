@@ -105,8 +105,7 @@ class XmppServerConnection : IDisposable
 
     internal async Task InitializeAsync()
     {
-        _parser = new XmppParser(_stream);
-        SetupParser();
+        ResetParser();
         await Task.WhenAny(BeginSend(), BeginReceive());
     }
 
@@ -255,7 +254,7 @@ class XmppServerConnection : IDisposable
                         }
                         else
                         {
-                            if (query is { LocalName: "bind" } bind && bind.GetNamespace() == Namespaces.Bind)
+                            if (query is { LocalName: "bind", Namespace: Namespaces.Bind } bind)
                             {
                                 var resource = bind.Element("resource").Value;
 
@@ -284,7 +283,7 @@ class XmppServerConnection : IDisposable
                                 return;
                             }
 
-                            if (query is { LocalName: "session" } && query.GetNamespace() == Namespaces.Session)
+                            if (query is { LocalName: "session", Namespace: Namespaces.Session })
                             {
                                 iq.SwitchDirection();
                                 iq.Type = "result";
