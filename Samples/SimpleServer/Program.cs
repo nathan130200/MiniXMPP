@@ -46,14 +46,19 @@ static class Program
 
             connection.OnResourceBind += resource =>
             {
-                var search = connection.Jid with { Resource = resource };
-
                 lock (s_Connections)
                 {
-                    if (s_Connections.Any(x => x.IsAuthenticated && FullJidComparer.AreEquals(x.Jid, search)))
+                    var counter = 1;
+
+                    var search = connection.Jid with { Resource = resource };
+
+                    while (true)
                     {
+                        if (!s_Connections.Any(x => x.IsAuthenticated && FullJidComparer.AreEquals(x.Jid, search)))
+                            break;
+
                         // TODO: Handle resource conflict: assign new resource or drop current/previus connection.
-                        return null;
+                        search = search with { Resource = $"{resource}_{counter++}" };
                     }
                 }
 
