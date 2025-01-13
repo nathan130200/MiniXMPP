@@ -7,3 +7,5 @@ The difference between this and my other [XmppSharp](https://github.com/nathan13
 It does not implement any RFC's or XEP's of the XMPP protocol, all processing must be done manually.
 
 It has a standard parser built on top of .NET's Xml Reader that fully meets the needs of the XMPP protocol.
+
+Install this library through [NuGet](https://www.nuget.org/packages/MiniXMPP).
