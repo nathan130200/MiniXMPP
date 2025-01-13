@@ -280,7 +280,7 @@ public static class Xml
         return current;
     }
 
-    public static XmppElement StreamStream()
+    public static XmppStanza StreamStream()
         => new("stream:stream", Namespaces.Stream);
 
     public static XmppElement StreamFeatures()
@@ -296,7 +296,7 @@ public static class Xml
         return el;
     }
 
-    public static XmppElement Error(string? type, string? condition = default, string? text = default)
+    public static XmppElement StanzaError(string? type, string? condition = default, string? text = default)
     {
         var el = new XmppElement("error")
         {
