@@ -3,8 +3,10 @@ using System.Net;
 using System.Text;
 using System.Xml;
 using System.Xml.Schema;
+using MiniXmpp.Collections;
 using MiniXmpp.Dom;
 using MiniXmpp.Dom.Abstractions;
+using MiniXmpp.Enums;
 
 namespace MiniXmpp;
 
@@ -298,28 +300,38 @@ public static class Xml
     public static XmppElement StreamFeatures()
         => new("stream:features", Namespaces.Stream);
 
-    public static XmppElement StreamError(string? condition)
+    public static XmppElement Failure(FailureCondition? condition)
+    {
+        var result = new XmppElement("failure", Namespaces.Sasl);
+
+        if (condition.HasValue)
+            result.C(condition.Value.ToXmpp()!);
+
+        return result;
+    }
+
+    public static XmppElement StreamError(StreamErrorCondition? condition)
     {
         var el = new XmppElement("stream:error", Namespaces.Stream);
 
-        if (condition != null)
-            el.C(condition, Namespaces.Streams);
+        if (condition.HasValue)
+            el.C(condition.Value.ToXmpp()!, Namespaces.Streams);
 
         return el;
     }
 
-    public static XmppElement StanzaError(string? type, string? condition = default, string? text = default)
+    public static XmppElement StanzaError(StanzaErrorType type, StanzaErrorCondition? condition = default, string? text = default)
     {
         var el = new XmppElement("error")
         {
             Attributes =
             {
-                ["type"] = type,
+                ["type"] = type.ToXmpp(),
             }
         };
 
-        if (condition != null)
-            el.C(condition, Namespaces.Stanzas);
+        if (condition.HasValue)
+            el.C(condition.Value.ToXmpp()!, Namespaces.Stanzas);
 
         if (text != null)
             el.C("text", Namespaces.Stanzas, text);

@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using System.Text;
 using MiniXmpp;
 using MiniXmpp.Dom;
+using MiniXmpp.Enums;
 
 namespace SimpleServer;
 
@@ -202,7 +203,7 @@ public sealed class XmppServerConnection : IDisposable
                                 if (resource == null)
                                 {
                                     iq.Type = "error";
-                                    iq.Add(Xml.StanzaError("cancel", "conflict"));
+                                    iq.Add(Xml.StanzaError(StanzaErrorType.Cancel, StanzaErrorCondition.Conflict));
                                 }
                                 else
                                 {
@@ -227,12 +228,12 @@ public sealed class XmppServerConnection : IDisposable
                         }
                     }
 
-                    if (stz is { LocalName: "presence" })
+                    if (stz is { LocalName: "presence" or "message" }) // TODO: Handle presence and messages.
                         return;
 
                     stz.SwitchDirection();
                     stz.Type = "error";
-                    stz.Add(Xml.StanzaError("cancel", "feature-not-implemented"));
+                    stz.Add(Xml.StanzaError(StanzaErrorType.Cancel, StanzaErrorCondition.FeatureNotImplemented));
                     Send(stz);
                 }
             }
