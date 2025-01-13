@@ -141,7 +141,7 @@ public class XmppElement : XmppNode
 
 #if NET8_0_OR_GREATER
 
-    public T GetAttribute<T>(string key, T defaultValue = default, IFormatProvider formatProvider = default) where T : IParsable<T>
+    public T GetAttribute<T>(XmppName key, T defaultValue = default, IFormatProvider formatProvider = default) where T : IParsable<T>
     {
         var temp = Attributes[key];
 
@@ -155,11 +155,11 @@ public class XmppElement : XmppNode
     }
 #else
 
-    public T GetAttribute<T>(string key, T defaultValue = default)
+    public T GetAttribute<T>(XmppName key, T defaultValue = default)
     {
         var value = Attributes[key];
 
-        if (value != default)
+        if (value != null)
             return Xml.FromXmlString<T>(value, defaultValue);
 
         return defaultValue;
@@ -169,7 +169,7 @@ public class XmppElement : XmppNode
 
 #pragma warning restore
 
-    public void SetAttribute(string key, object value, IFormatProvider? formatProvidedr = default)
+    public void SetAttribute(XmppName key, object value, IFormatProvider? formatProvidedr = default)
     {
         if (value == null)
             Attributes[key] = null;

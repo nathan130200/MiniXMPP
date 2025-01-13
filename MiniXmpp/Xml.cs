@@ -92,9 +92,10 @@ public static class Xml
 #pragma warning restore
 
     [ThreadStatic]
-    static string s_IndentChars;
+    static string? s_IndentChars;
+
     [ThreadStatic]
-    static string s_NewLineChars;
+    static string? s_NewLineChars;
 
     public static string IndentChars
         => s_IndentChars ??= "  ";
