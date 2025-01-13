@@ -100,4 +100,32 @@ public class DomTest(ITestOutputHelper output)
         XmppName test2 = ":b";
         Assert.Equal("b", test2.LocalName);
     }
+
+    [Fact]
+    public void ParseNullXml()
+    {
+        var xml = "";
+        var root = Xml.Parse(xml);
+        Assert.Null(root);
+    }
+
+    [Fact]
+    public void ParseRealWorldXml()
+    {
+        // Source: https://www.bing.com/search?q=xml+sample&PC=U316&FORM=CHROMN
+
+        var xml = @"<?xml version=""1.0"" encoding=""UTF-8""?>
+<note>
+<to>Tove</to>
+<from>Jani</from>
+<heading>Reminder</heading>
+<body>Don't forget me this weekend!</body>
+</note>";
+        var root = Xml.Parse(xml);
+
+        Assert.NotNull(root);
+        Assert.Equal("note", root.TagName);
+
+        output.WriteLine(root.ToString(true));
+    }
 }

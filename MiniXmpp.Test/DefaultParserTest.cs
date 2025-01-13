@@ -83,10 +83,6 @@ public class DefaultParserTest(ITestOutputHelper output)
             if (e is { LocalName: "auth" })
             {
                 sendQueue.Enqueue(new XmppElement("success", Namespaces.Sasl));
-
-                parser.Dispose();
-                parser = new XmppParser(stream);
-
                 isAuthenticated = true;
             }
 
