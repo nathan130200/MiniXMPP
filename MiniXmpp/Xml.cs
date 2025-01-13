@@ -91,6 +91,17 @@ public static class Xml
 
 #pragma warning restore
 
+    [ThreadStatic]
+    static string s_IndentChars;
+    [ThreadStatic]
+    static string s_NewLineChars;
+
+    public static string IndentChars
+        => s_IndentChars ??= "  ";
+
+    public static string NewLineChars
+        => s_NewLineChars ??= "\n";
+
     public static XmlWriter CreateWriter(StringBuilder textWriter, XmlFormatting formatting, Encoding? encoding = default)
     {
         var conformanceLevel = formatting.HasFlag(XmlFormatting.OmitXmlDeclaration)
@@ -104,13 +115,13 @@ public static class Xml
         return XmlWriter.Create(textWriter, new XmlWriterSettings()
         {
             Indent = formatting.HasFlag(XmlFormatting.Indented),
-            IndentChars = "\t",
+            IndentChars = IndentChars,
             ConformanceLevel = conformanceLevel,
             CloseOutput = false,
             Encoding = encoding ?? Encoding.UTF8,
             NamespaceHandling = namespaceHandling,
             OmitXmlDeclaration = formatting.HasFlag(XmlFormatting.OmitXmlDeclaration),
-            NewLineChars = "\n",
+            NewLineChars = NewLineChars,
             NewLineOnAttributes = formatting.HasFlag(XmlFormatting.NewLineOnAttributes),
             DoNotEscapeUriAttributes = formatting.HasFlag(XmlFormatting.DoNotEscapeUriAttributes),
             CheckCharacters = formatting.HasFlag(XmlFormatting.CheckCharacters),
