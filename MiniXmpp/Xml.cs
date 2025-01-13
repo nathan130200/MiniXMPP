@@ -280,6 +280,12 @@ public static class Xml
         return current;
     }
 
+    public static XmppElement StreamStream()
+        => new("stream:stream", Namespaces.Stream);
+
+    public static XmppElement StreamFeatures()
+        => new("stream:features", Namespaces.Stream);
+
     public static XmppElement StreamError(string? condition)
     {
         var el = new XmppElement("stream:error", Namespaces.Stream);
