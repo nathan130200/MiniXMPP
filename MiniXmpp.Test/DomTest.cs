@@ -1,4 +1,5 @@
 ﻿using MiniXmpp.Dom;
+using MiniXmpp.Enums;
 using Xunit.Abstractions;
 
 namespace MiniXmpp.Test;
@@ -69,10 +70,10 @@ public class DomTest(ITestOutputHelper output)
     [Fact]
     public void DumpStreamErrorTest()
     {
-        var se = Xml.StreamError("bad-request");
+        var se = Xml.StreamError(StreamErrorCondition.HostUnknown);
         Assert.Equal("stream", se.Prefix);
         Assert.Equal(Namespaces.Stream, se.GetNamespace("stream"));
-        Assert.Equal("bad-request", se.Elements().First().TagName);
+        Assert.Equal("host-unknown", se.Elements().First().TagName);
     }
 
     [Fact]
