@@ -22,7 +22,7 @@
 		<RepositoryUrl>https://github.com/nathan130200/MiniXMPP</RepositoryUrl>
 		<PackageTags>xmpp, xmpp client, xmpp server, xmpp component, xmpp parser</PackageTags>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
-		<Version>1.0.1</Version>
+		<Version>1.0.2</Version>
 	</PropertyGroup>
 
 	<PropertyGroup Condition="'$(Configuration)' == 'Release'">

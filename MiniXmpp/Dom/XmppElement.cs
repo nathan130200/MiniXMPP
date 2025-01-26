@@ -11,6 +11,9 @@ public class XmppElement : XmppNode
 
     public XmppName TagName { get; set; } = default!;
 
+    public string QualifiedName
+        => TagName.ToString();
+
     public string LocalName
     {
         get => TagName.LocalName;
@@ -65,7 +68,8 @@ public class XmppElement : XmppNode
     {
         get
         {
-            return string.Concat(from n in Nodes().OfType<XmppText>()
+            return string.Concat(from n in Nodes()
+                                 .OfType<XmppText>()
                                  select n.Value);
         }
         set
@@ -211,8 +215,23 @@ public class XmppElement : XmppNode
         }
     }
 
-    public XmppElement? Element(XmppName name) => Elements().FirstOrDefault(e => e.TagName == name);
-    public IEnumerable<XmppElement> Elements() => Nodes().OfType<XmppElement>();
+    public XmppNode? FirstNode
+        => Nodes().FirstOrDefault();
+
+    public XmppNode? LastNode
+        => Nodes().LastOrDefault();
+
+    public XmppElement? FirstChild
+        => Elements().FirstOrDefault();
+
+    public XmppElement? LastChild
+        => Elements().LastOrDefault();
+
+    public XmppElement? Element(XmppName name)
+        => Elements().FirstOrDefault(e => e.TagName == name);
+
+    public IEnumerable<XmppElement> Elements()
+        => Nodes().OfType<XmppElement>();
 
     public virtual void RemoveAll()
     {
